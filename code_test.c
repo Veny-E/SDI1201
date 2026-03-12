@@ -3,7 +3,7 @@
   code.nxc
   05/02/2026
   OBJECTIF : tester la fonction get_to_light, savoir si nos capteurs
-  sont capables de recuperer nos donnees. 
+  sont capables de recuperer nos donnees.
 
   ==> resultats : success
 
@@ -30,22 +30,22 @@
 #define MOT_2 OUT_C
 #define MOTS OUT_AC
 
-#define IN_LIGHT_LEFT IN_1
-#define IN_LIGHT_RIGHT IN_4
+#define LuxL IN_1
+#define LuxR IN_4
 #define IN_US IN_2
 #define IN_Touch IN_3
 
 /// Fonctions
 
- inline void init_sensors() {
+inline void init_sensors() {
 
        // Light right
-       SetSensorType(IN_LIGHT_RIGHT, SENSOR_TYPE_LIGHT_INACTIVE);
-       SetSensorMode(IN_LIGHT_RIGHT, SENSOR_MODE_RAW);
+       SetSensorType(LuxR, SENSOR_TYPE_LIGHT_INACTIVE);
+       SetSensorMode(LuxR, SENSOR_MODE_RAW);
 
        // Light left
-       SetSensorType(IN_LIGHT_LEFT, SENSOR_TYPE_LIGHT_INACTIVE);
-       SetSensorMode(IN_LIGHT_LEFT, SENSOR_MODE_RAW);
+       SetSensorType(LuxL, SENSOR_TYPE_LIGHT_INACTIVE);
+       SetSensorMode(LuxL, SENSOR_MODE_RAW);
 
        // Ultrasound
        SetSensorLowspeed(IN_US);
@@ -55,30 +55,59 @@
 
 }
 
-inline string get_to_light() {
+/*
+  Trouve le capteur qui observe le plus
+  de lumiere
 
-       int light_left = Sensor(IN_LIGHT_LEFT);
-       int light_right = Sensor(IN_LIGHT_RIGHT);
+  Args :
+       (int) tolerance
+  Returns :
+       "gauche" || "droite" || "egal" || "nul"
+*/
+inline string get_to_light(int tolerance) {
 
-       if (light_left > light_right) {
+       int light_left = Sensor(LuxL);
+       int light_right = Sensor(LuxR);
+
+       int dif = light_right-light_left;
+
+       if (abs(dif) < tolerance) {
+              return "egal";
+       } else if (light_right < tolerance && light_left < tolerance) {
+              return "nul";
+       } else if (light_left > light_right) {
               return "gauche";
        } else if (light_right > light_left) {
               return "droite";
-       } else if (light_right == 0 && light_left == 0) {
-              return "nul";
-       } else {
-              return "egal";
        }
-
 }
-
-
-
-
 
 task main() {
 
        init_sensors();
-       TextOut(1, LCD_LINE1, get_to_light(), true);
+       
+       SetSensorType(LuxL, IN_TYPE_LIGHT_ACTIVE);
+       SetSensorType(LuxR, IN_TYPE_LIGHT_ACTIVE);
+       Wait(500);
+       SetSensorType(LuxL, IN_TYPE_LIGHT_INACTIVE);
+       SetSensorType(LuxR, IN_TYPE_LIGHT_INACTIVE);
+
+       int tolerance = 0;
+
+       while (true) {
+
+              if (ButtonState(3) == 0) {
+                     tolerance = tolerance - 1;
+              }
+              if (ButtonState(2) == 0) {
+                     tolerance = tolerance + 1;
+              }
+
+              int light_left = Sensor(LuxL);
+              int light_right = Sensor(LuxR);
+
+              TextOut(1, LCD_LINE1, StrCat(NumToStr(tolerance), " ", get_to_light(tolerance), " ", NumToStr(light_left), " ", NumToStr(light_right)), true);
+
+       }
 
 }
